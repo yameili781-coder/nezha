@@ -1,18 +1,20 @@
-FROM alpine AS depend
-RUN apk add --update --no-cache ca-certificates tzdata
+FROM alpine AS certs
+RUN apk update && apk add ca-certificates
 
 FROM busybox:stable-musl
 
 ARG TARGETOS
 ARG TARGETARCH
 
-COPY --from=depend /etc/ssl/certs /etc/ssl/certs
-COPY --from=depend /usr/share/zoneinfo /usr/share/zoneinfo
+COPY --from=certs /etc/ssl/certs /etc/ssl/certs
 COPY ./script/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 WORKDIR /dashboard
 COPY dist/dashboard-${TARGETOS}-${TARGETARCH} ./app
+
+# 修复 app 文件权限 - 添加这行
+RUN chmod 755 ./app
 
 VOLUME ["/dashboard/data"]
 EXPOSE 8008
